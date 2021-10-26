@@ -8,6 +8,7 @@ from shutil import copyfile, move
 
 import numpy as np
 import cv2
+from PIL import Image
 import imagesize
 import exifread
 
@@ -28,11 +29,12 @@ labels = data['labels']
 
 # set directory for saving results
 save_dir = data['save_dir'] if data['save_dir'] else datetime.now().strftime('%b%d_%H-%M-%S')
-save_dir = save_dir if save_dir[0]=='/' else f"results/{save_dir}"
+log_dir = f"results/{dir_name}" if len(save_dir.split('/'))>0 else f"results/{save_dir}"
 os.makedirs(f"{save_dir}/images", exist_ok=True)
-os.makedirs(f"{save_dir}/error", exist_ok=True)
 os.makedirs(f"{save_dir}/labels", exist_ok=True)
-copyfile(args.data, os.path.join(save_dir, f"{dir_name}.yaml")) # save data file (.yaml)
+
+os.makedirs(f"{log_dir}/error", exist_ok=True)
+copyfile(args.data, os.path.join(f"{log_dir}", f"{dir_name}.yaml")) # save data file (.yaml)
 
 
 def copy_img(base_path, dirname, target_path):
@@ -47,7 +49,7 @@ def copy_img(base_path, dirname, target_path):
     img_target_path = f"{target_path}/images"
     if not Path(f"{img_target_path}/{dirname}").exists():
         os.mkdir(f"{img_target_path}/{dirname}")
-        os.system(f"find {base_path}/{dirname} -iname '*.jpg' -exec cp {{}} {img_target_path}/{dirname} \;")
+        os.system(f"find {base_path}/{dirname} -name '*.jpg' -exec cp {{}} {img_target_path}/{dirname} \;")
         # os.system(f"cp {base_path}/{dirname}/*.jpg {img_target_path}/{dirname}")
         print(f"- image 복사 완료!")
 
@@ -77,10 +79,10 @@ def convert_yolo_txt(base_path, dirname, target_path):
             except:
                 error_file+=f"\n--  crack json : {jsonfile}"
                 if os.path.exists(str(jsonfile)[:-4]+'jpg'):
-                    move(str(jsonfile)[:-4]+'jpg', f"{save_dir}/error/{jsonfile.name[:-4]+'jpg'}")
+                    move(str(jsonfile)[:-4]+'jpg', f"{log_dir}/error/{jsonfile.name[:-4]+'jpg'}")
                     # os.remove(f"{str(jsonfile)[:-4]+'jpg'}")
                 if os.path.exists(str(jsonfile)):
-                    move(str(jsonfile), f"{save_dir}/error/{jsonfile.name}")
+                    move(str(jsonfile), f"{log_dir}/error/{jsonfile.name}")
                     # os.remove(f"{str(jsonfile)}")
                 # print(f"\n--  crack json : {jsonfile}")
                 continue
@@ -93,20 +95,20 @@ def convert_yolo_txt(base_path, dirname, target_path):
         except:
             error_file+=f"\n--    no image : {image_path}"
             if os.path.exists(image_path):
-                move(str(jsonfile), f"{save_dir}/error/{jsonfile.name[:-4]+'jpg'}")
+                move(str(jsonfile), f"{log_dir}/error/{jsonfile.name[:-4]+'jpg'}")
                 # os.remove(f"{image_path}")
             if os.path.exists(str(jsonfile)):
-                move(str(jsonfile), f"{save_dir}/error/{jsonfile.name}")
+                move(str(jsonfile), f"{log_dir}/error/{jsonfile.name}")
                 # os.remove(f"{str(jsonfile)}")
             # print(f"\n--    no image : {image_path}")
             continue
         if w0 == -1 or h0 == -1:
             error_file+=f"\n-- crack image : {image_path}"
             if os.path.exists(image_path):
-                move(str(jsonfile), f"{save_dir}/error/{jsonfile.name[:-4]+'jpg'}")
+                move(str(jsonfile), f"{log_dir}/error/{jsonfile.name[:-4]+'jpg'}")
                 # os.remove(f"{image_path}")
             if os.path.exists(str(jsonfile)):
-                move(str(jsonfile), f"{save_dir}/error/{jsonfile.name}")
+                move(str(jsonfile), f"{log_dir}/error/{jsonfile.name}")
                 # os.remove(f"{str(jsonfile)}")
             # print(f"\n-- crack image : {image_path}")
             continue
@@ -132,10 +134,10 @@ def convert_yolo_txt(base_path, dirname, target_path):
         if len(data['shapes']) == 0:
             error_file+=f"\n--     no bbox : {jsonfile}"
             if os.path.exists(image_path):
-                move(str(jsonfile), f"{save_dir}/error/{jsonfile.name[:-4]+'jpg'}")
+                move(str(jsonfile), f"{log_dir}/error/{jsonfile.name[:-4]+'jpg'}")
                 # os.remove(f"{image_path}")
             if os.path.exists(str(jsonfile)):
-                move(str(jsonfile), f"{save_dir}/error/{jsonfile.name}")
+                move(str(jsonfile), f"{log_dir}/error/{jsonfile.name}")
                 # os.remove(f"{str(jsonfile)}")
             continue
 
@@ -167,10 +169,10 @@ def convert_yolo_txt(base_path, dirname, target_path):
                 except:
                     error_file+=f"\n-- label error : {jsonfile}"
                     if os.path.exists(image_path):
-                        move(str(jsonfile), f"{save_dir}/error/{jsonfile.name[:-4]+'jpg'}")
+                        move(str(jsonfile), f"{log_dir}/error/{jsonfile.name[:-4]+'jpg'}")
                         # os.remove(f"{image_path}")
                     if os.path.exists(str(jsonfile)):
-                        move(str(jsonfile), f"{save_dir}/error/{jsonfile.name}")
+                        move(str(jsonfile), f"{log_dir}/error/{jsonfile.name}")
                         # os.remove(f"{str(jsonfile)}")
                     break
 
@@ -235,6 +237,7 @@ def resize_img(dirname, target_path, resize_size=None):
 
         resize_count = 0
         pass_count = 0
+        crack_count = 0
         for img_path in tqdm(img_list):
             try:
                 img = cv2.imread(str(img_path))
@@ -243,6 +246,7 @@ def resize_img(dirname, target_path, resize_size=None):
                 if os.path.exists(str(img_path)):
                     os.remove(f"{str(img_path)}")
                 # print(f"\n--    no image : {str(img_path)}")
+                crack_count += 1
                 continue
 
             if img is None:
@@ -250,6 +254,7 @@ def resize_img(dirname, target_path, resize_size=None):
                 if os.path.exists(str(img_path)):
                     os.remove(f"{str(img_path)}")
                 # print(f"\n-- crack image : {str(img_path)}")
+                crack_count += 1
                 continue
 
             h0, w0 = img.shape[:2]
@@ -258,10 +263,12 @@ def resize_img(dirname, target_path, resize_size=None):
                 if os.path.exists(str(img_path)):
                     os.remove(f"{str(img_path)}")
                 # print(f"\n-- crack image : {str(img_path)}")
+                crack_count += 1
                 continue
 
 
             if h0 == resize_size or w0 == resize_size:
+                pass_count += 1
                 continue
 
             r = resize_size / max(h0, w0)  # ratio
@@ -274,11 +281,36 @@ def resize_img(dirname, target_path, resize_size=None):
                 pass_count += 1
                 
         print(error_file)
-        print(f"- [{dirname}] image resize 완료! (resize:{resize_count}, pass:{pass_count})")
+        print(f"- [{dirname}] image resize 완료! (resize:{resize_count}, pass:{pass_count}, crack:{crack_count})")
     else:
         print(f"- resize value is wrong!")
 
+def check_suffix(base_path, dirname):
+    print(f"\n>> check_suffix! ")
+
+    suffix_list = ['JPG', 'jpeg', 'JPEG']
+
+    for suffix in suffix_list:
+        len_suffix = len(suffix)
+        img_list = list(Path(f"{base_path}/{dirname}").rglob(f"*.{suffix}"))
+
+        if len(img_list) == 0:
+            print(f"- [{suffix}] No images!")
+            continue
+        else :
+            print(f"- [{suffix}] start!")
+
+        for img_path in tqdm(img_list):
+            # img = Image.open(str(img_path))
+            # rgb_img = img.convert('RGB')
+            # rgb_img.save(str(img_path)[:-len_suffix]+'jpg')
+
+            img = cv2.imread(str(img_path))
+            cv2.imwrite(str(img_path)[:-len_suffix]+'jpg', img)
+        print(f"- [{suffix}] end!")
+
 def add_dataset(base_path, dirname, target_path, resize_v):
+    check_suffix(base_path, dirname)
     convert_yolo_txt(base_path, dirname, target_path)
     copy_img(base_path, dirname, target_path)
     resize_img(dirname, target_path, resize_size=resize_v)
