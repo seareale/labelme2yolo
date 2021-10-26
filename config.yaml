@@ -1,0 +1,40 @@
+# dirs as 1) dir: path/to/imgs or 2) list: [path/to/imgs1, path/to/imgs2, ..]
+path: '/ssd_2/RecycleTrash/org/2021AGC'
+dirname: '211025_data'
+
+# default is None 
+save_dir:
+# save_dir: '/ssd_2/RecycleTrash/yolo'
+
+# resize opt
+resize_value: 1280
+
+class_name: ['paper', 'paperpack', 'can', 'glass', 'pet', 'plastic', 'vinyl']
+labels: {
+    # past labels
+    'paper' : 0,
+    'paperpack' : 1,
+    'can' : 2,
+    'glass' : 3,
+    'pet' : 4,
+    'plastic' : 5,
+    'vinyl' : 6,
+
+    # current labels
+    'c_1' : 0,
+    'c_2' : 1,
+    'c_3' : 2,
+    'c_4' : 3,
+    'c_5' : 4,
+    'c_6' : 5, 
+    'c_7' : 6, 
+
+    # hybrid
+    'c_1 paper' : 0,
+    'c_2 paperpack' : 1,
+    'c_3 can' : 2,
+    'c_4 glass' : 3,
+    'c_5 pet' : 4,
+    'c_6 plastic' : 5, 
+    'c_7 vinyl' : 6,  
+}
